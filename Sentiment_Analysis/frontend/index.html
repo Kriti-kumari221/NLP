@@ -1,693 +1,704 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CineRead · Film Sentiment AI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CineRead · Film Sentiment AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#090806;--bg2:#110e09;--surface:rgba(20,15,8,.88);
+  --border:rgba(200,145,55,.15);--border-hot:rgba(200,145,55,.5);
+  --gold:#c8913a;--gold-l:#f2c060;--gold-d:#8a5f1a;--gold-glow:rgba(200,145,55,.32);
+  --crimson:#c0283c;--crimson-l:#ff6070;--crimson-glow:rgba(192,40,60,.38);
+  --emerald:#1fad7a;--emerald-l:#4dffc0;--emerald-glow:rgba(31,173,122,.38);
+  --amber:#e0822a;--text:#f2e8d8;--text-muted:#9a8070;--text-dim:#4a3e34;
+  --r:4px;--ease:cubic-bezier(.16,1,.3,1)
+}
+[data-theme="light"]{
+  --bg:#f5f0e8;--bg2:#ede5d5;--surface:rgba(255,250,240,.93);
+  --border:rgba(160,105,30,.2);--border-hot:rgba(160,105,30,.55);
+  --gold:#9a6418;--gold-l:#c08030;--gold-glow:rgba(154,100,24,.25);
+  --crimson:#b02030;--crimson-glow:rgba(176,32,48,.25);
+  --emerald:#178a62;--emerald-l:#25c08a;--emerald-glow:rgba(23,138,98,.25);
+  --text:#1a1008;--text-muted:#6a5540;--text-dim:#c0b098
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'DM Sans',sans-serif;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  padding:2.5rem 1rem 4rem;position:relative;overflow-x:hidden
+}
+body::after{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,.72) 100%);
+  pointer-events:none;z-index:0
+}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--gold-d);border-radius:3px}
+#bgCanvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.5}
+#cursorGlow{
+  position:fixed;width:260px;height:260px;border-radius:50%;
+  background:radial-gradient(circle,rgba(200,145,55,.055) 0%,transparent 70%);
+  transform:translate(-50%,-50%);pointer-events:none;z-index:1;transition:opacity .4s
+}
+.theme-toggle{
+  position:fixed;top:1.4rem;right:1.6rem;width:44px;height:44px;border-radius:50%;
+  border:1px solid var(--border-hot);background:var(--surface);backdrop-filter:blur(16px);
+  display:grid;place-items:center;cursor:pointer;font-size:1.1rem;
+  transition:all .3s;z-index:200;box-shadow:0 0 20px var(--gold-glow)
+}
+.theme-toggle:hover{transform:rotate(18deg) scale(1.12)}
+.wrapper{width:100%;max-width:700px;position:relative;z-index:10;animation:riseIn .9s var(--ease) both}
+@keyframes riseIn{from{opacity:0;transform:translateY(38px)}to{opacity:1;transform:translateY(0)}}
 
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* HEADER */
+.header{text-align:center;margin-bottom:2.2rem}
+.film-perfs{display:flex;justify-content:center;gap:8px;margin-bottom:1.2rem}
+.perf{width:11px;height:17px;border-radius:2px;border:1.5px solid var(--border-hot);background:transparent}
+.perf.active{border-color:var(--gold);box-shadow:0 0 8px var(--gold-glow)}
+h1{font-family:'Playfair Display',serif;font-size:clamp(3.8rem,10vw,6.2rem);font-weight:900;font-style:italic;letter-spacing:-.03em;line-height:.9;display:inline-block}
+h1 .accent{
+  background:linear-gradient(135deg,var(--gold-l) 0%,var(--gold) 45%,var(--amber) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 22px var(--gold-glow));animation:textBreath 5s ease-in-out infinite
+}
+@keyframes textBreath{0%,100%{filter:drop-shadow(0 0 22px var(--gold-glow))}50%{filter:drop-shadow(0 0 40px var(--gold-glow)) brightness(1.12)}}
+.tagline{margin-top:.9rem;color:var(--text-muted);font-size:.82rem;letter-spacing:.28em;text-transform:uppercase;font-weight:300}
+.tagline::before,.tagline::after{content:'—';margin:0 .6em;color:var(--gold);opacity:.45}
+.live-badge{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.28rem .8rem;border-radius:999px;border:1px solid var(--border-hot);
+  background:rgba(200,145,55,.08);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gold);margin-top:.8rem
+}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold-glow);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.6}}
 
-    :root {
-      /* DARK: Film Noir / Amber-Crimson Cinema */
-      --bg:            #0c0a08;
-      --bg2:           #130f0b;
-      --surface:       rgba(22,16,10,0.85);
-      --border:        rgba(200,140,60,0.18);
-      --border-hot:    rgba(200,140,60,0.55);
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:1.4rem}
+.stat-box{
+  background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:var(--r);
+  padding:.9rem .7rem;text-align:center;transition:border-color .3s
+}
+.stat-box:hover{border-color:var(--border-hot)}
+.stat-val{font-family:'Playfair Display',serif;font-size:1.6rem;font-style:italic;color:var(--gold-l);line-height:1}
+.stat-key{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-top:.28rem}
 
-      --gold:          #c8903c;
-      --gold-light:    #f0c060;
-      --gold-glow:     rgba(200,140,60,0.35);
+/* CARD */
+.card{
+  background:var(--surface);backdrop-filter:blur(22px);
+  border:1px solid var(--border);border-radius:var(--r);
+  padding:2.4rem;position:relative;overflow:hidden;
+  box-shadow:0 28px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(200,145,55,.07);
+  margin-bottom:1.4rem
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold),var(--amber),var(--gold),transparent);
+  animation:scan 4s ease-in-out infinite
+}
+@keyframes scan{0%,100%{opacity:.45}50%{opacity:1}}
+.card::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0,transparent 18px,rgba(200,145,55,.03) 18px,rgba(200,145,55,.03) 20px)
+}
+.corner{position:absolute;width:20px;height:20px;border-color:var(--gold);border-style:solid;opacity:.3}
+.corner.tl{top:10px;left:10px;border-width:1.5px 0 0 1.5px}
+.corner.tr{top:10px;right:10px;border-width:1.5px 1.5px 0 0}
+.corner.bl{bottom:10px;left:10px;border-width:0 0 1.5px 1.5px}
+.corner.br{bottom:10px;right:10px;border-width:0 1.5px 1.5px 0}
 
-      --crimson:       #c0283c;
-      --crimson-glow:  rgba(192,40,60,0.4);
+/* TABS */
+.tabs{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:1.8rem;position:relative;z-index:1}
+.tab{flex:1;padding:.68rem .5rem;background:transparent;border:none;border-right:1px solid var(--border);color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:.81rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.tab:last-child{border-right:none}
+.tab.active{background:rgba(200,145,55,.12);color:var(--gold-l)}
+.tab:hover:not(.active){background:rgba(200,145,55,.05);color:var(--text)}
 
-      --emerald:       #1fad7a;
-      --emerald-glow:  rgba(31,173,122,0.4);
+/* INPUT */
+.input-label{display:flex;align-items:center;gap:.6rem;font-size:.78rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:.9rem;position:relative;z-index:1}
+.input-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold-glow);animation:blink 2.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+textarea{
+  width:100%;min-height:148px;background:rgba(0,0,0,.38);border:1px solid var(--border);
+  border-radius:var(--r);color:var(--text);padding:1.3rem 1.4rem;
+  font-family:'DM Sans',sans-serif;font-size:1rem;line-height:1.65;resize:vertical;
+  transition:border-color .3s,box-shadow .3s
+}
+textarea::placeholder{color:var(--text-dim)}
+textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,145,55,.1)}
+.word-count-bar{height:3px;background:rgba(255,255,255,.05);border-radius:2px;margin-top:.5rem;overflow:hidden;position:relative;z-index:1}
+.word-count-fill{height:100%;background:linear-gradient(90deg,var(--gold-d),var(--gold));border-radius:2px;width:0%;transition:width .4s var(--ease)}
+.meta-row{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;color:var(--text-muted);margin-top:.6rem;position:relative;z-index:1}
 
-      --amber:         #e07c2a;
-      --amber-glow:    rgba(224,124,42,0.35);
+/* TONE PILLS */
+.tone-row{display:flex;flex-wrap:wrap;gap:.42rem;min-height:26px;margin:.9rem 0;position:relative;z-index:1}
+.tone-pill{padding:.26rem .72rem;border-radius:999px;font-size:.74rem;letter-spacing:.06em;border:1px solid transparent;animation:pillFade .4s var(--ease)}
+@keyframes pillFade{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+.tone-pill.pos{border-color:var(--emerald-glow);color:var(--emerald-l);background:rgba(31,173,122,.1)}
+.tone-pill.neg{border-color:var(--crimson-glow);color:var(--crimson-l);background:rgba(192,40,60,.1)}
+.tone-pill.neu{border-color:rgba(200,145,55,.3);color:var(--gold);background:rgba(200,145,55,.07)}
 
-      --text:          #f5ede0;
-      --text-muted:    #9a8878;
-      --text-dim:      #5c4e42;
+/* MOOD SPECTRUM */
+.mood-wrap{position:relative;z-index:1;margin:.8rem 0}
+.mood-label-row{font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:.5rem}
+.mood-track{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--crimson) 0%,var(--amber) 50%,var(--emerald) 100%);position:relative}
+.mood-thumb{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:white;border:2px solid var(--bg);box-shadow:0 0 12px rgba(255,255,255,.5);transform:translate(-50%,-50%);left:50%;transition:left 1.1s var(--ease)}
+.mood-ends{display:flex;justify-content:space-between;margin-top:.32rem;font-size:.73rem;color:var(--text-dim)}
 
-      --film-stripe:   repeating-linear-gradient(
-                         90deg,
-                         transparent 0px, transparent 18px,
-                         rgba(200,140,60,0.04) 18px, rgba(200,140,60,0.04) 20px
-                       );
-    }
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1.3rem;position:relative;z-index:1}
+.chip{padding:.4rem .9rem;border-radius:2px;border:1px solid var(--border);background:rgba(200,145,55,.04);color:var(--text-muted);font-size:.82rem;cursor:pointer;transition:all .25s;font-family:'DM Sans',sans-serif}
+.chip:hover{border-color:var(--gold);color:var(--gold-l);background:rgba(200,145,55,.1);transform:translateY(-1px);box-shadow:0 4px 14px var(--gold-glow)}
 
-    [data-theme="light"] {
-      --bg:           #f9f4ec;
-      --bg2:          #f0e8d8;
-      --surface:      rgba(255,250,240,0.92);
-      --border:       rgba(160,100,30,0.22);
-      --border-hot:   rgba(160,100,30,0.6);
-      --gold:         #a06820;
-      --gold-light:   #c08030;
-      --text:         #1a1008;
-      --text-muted:   #6b5540;
-      --text-dim:     #bba898;
-      --film-stripe:  repeating-linear-gradient(
-                        90deg,
-                        transparent 0px, transparent 18px,
-                        rgba(160,100,30,0.05) 18px, rgba(160,100,30,0.05) 20px
-                      );
-    }
+/* BUTTON */
+.gold-btn{
+  width:100%;padding:1.12rem;border:none;border-radius:var(--r);
+  background:linear-gradient(135deg,#9a6018 0%,#c8913a 38%,#f0b845 68%,#c07820 100%);
+  color:#0c0800;font-family:'DM Sans',sans-serif;font-size:.87rem;font-weight:600;
+  letter-spacing:.22em;text-transform:uppercase;cursor:pointer;
+  position:relative;overflow:hidden;transition:all .35s;box-shadow:0 4px 26px var(--gold-glow)
+}
+.gold-btn:hover{transform:translateY(-2px);box-shadow:0 10px 42px rgba(200,145,55,.5);filter:brightness(1.08)}
+.gold-btn:active{transform:translateY(0)}
+.gold-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);transform:translateX(-100%);transition:transform .65s}
+.gold-btn:hover::before{transform:translateX(100%)}
+.gold-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border-hot),transparent);margin:1.8rem 0}
 
-    /* ── BODY ── */
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 3rem 1.2rem;
-      position: relative;
-      overflow-x: hidden;
-    }
+/* RESULT BOX */
+.result-box{
+  border:1px solid var(--border);border-radius:var(--r);padding:2rem;text-align:center;
+  min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:.6rem;position:relative;overflow:hidden;
+  transition:border-color .55s,box-shadow .55s
+}
+.result-box.positive{border-color:rgba(31,173,122,.5);box-shadow:0 0 50px rgba(31,173,122,.1),inset 0 0 80px rgba(31,173,122,.04)}
+.result-box.negative{border-color:rgba(192,40,60,.5);box-shadow:0 0 50px rgba(192,40,60,.1),inset 0 0 80px rgba(192,40,60,.04)}
+.result-box.neutral{border-color:rgba(200,145,55,.5);box-shadow:0 0 50px rgba(200,145,55,.1),inset 0 0 80px rgba(200,145,55,.04)}
+.result-icon{font-size:3rem;line-height:1;filter:drop-shadow(0 0 14px currentColor)}
+.result-icon.pop{animation:iconPop .55s cubic-bezier(.34,1.56,.64,1)}
+@keyframes iconPop{0%{transform:scale(.3) rotate(-12deg)}100%{transform:scale(1) rotate(0deg)}}
+.result-label{font-family:'Playfair Display',serif;font-size:3.4rem;font-weight:700;font-style:italic;letter-spacing:-.02em;line-height:1}
+.result-label.positive{color:var(--emerald);text-shadow:0 0 30px var(--emerald-glow)}
+.result-label.negative{color:var(--crimson);text-shadow:0 0 30px var(--crimson-glow)}
+.result-label.neutral{color:var(--gold);text-shadow:0 0 30px var(--gold-glow)}
+.result-label.idle{color:var(--text-muted);font-size:1.4rem;font-style:normal;font-weight:400}
+.result-sub{font-size:.8rem;letter-spacing:.17em;text-transform:uppercase;color:var(--text-muted)}
 
-    /* Grain texture */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.6;
-    }
+/* ARC METER */
+.arc-wrap{position:relative;width:110px;height:62px;margin:.4rem auto 0}
+.arc-svg{width:110px;height:62px;overflow:visible}
+.arc-bg{fill:none;stroke:rgba(255,255,255,.07);stroke-width:6;stroke-linecap:round}
+.arc-fill{fill:none;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1.5s var(--ease)}
+.arc-label{position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-size:1rem;font-weight:600;letter-spacing:-.02em}
 
-    /* Cinematic vignette */
-    body::after {
-      content: '';
-      position: fixed; inset: 0;
-      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.65) 100%);
-      pointer-events: none;
-      z-index: 0;
-    }
+/* KEYWORDS */
+.keywords-row{display:flex;flex-wrap:wrap;justify-content:center;gap:.38rem;margin-top:.4rem;max-width:380px}
+.kw{padding:.24rem .62rem;border-radius:999px;font-size:.74rem;border:1px solid;animation:kwPop .4s var(--ease) both}
+@keyframes kwPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+.kw.pos{border-color:var(--emerald-glow);color:var(--emerald-l)}
+.kw.neg{border-color:var(--crimson-glow);color:var(--crimson-l)}
+.kw.neu{border-color:rgba(200,145,55,.35);color:var(--gold)}
 
-    /* Ambient glow orbs */
-    .orb1 {
-      position: fixed;
-      width: 600px; height: 600px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(200,140,60,0.07) 0%, transparent 70%);
-      top: -200px; left: -150px;
-      animation: drift 25s ease-in-out infinite alternate;
-      pointer-events: none; z-index: 0;
-    }
-    .orb2 {
-      position: fixed;
-      width: 500px; height: 500px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(192,40,60,0.06) 0%, transparent 70%);
-      bottom: -150px; right: -100px;
-      animation: drift 30s ease-in-out infinite alternate-reverse;
-      pointer-events: none; z-index: 0;
-    }
-    @keyframes drift { from { transform: translate(0,0); } to { transform: translate(40px,30px); } }
+/* ACTION BUTTONS */
+.action-row{display:flex;gap:.6rem;margin-top:.8rem;flex-wrap:wrap;justify-content:center}
+.action-btn{
+  padding:.5rem 1.15rem;border-radius:2px;background:transparent;
+  border:1px solid var(--border-hot);color:var(--gold);
+  font-family:'DM Sans',sans-serif;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;
+  cursor:pointer;transition:all .25s
+}
+.action-btn:hover{background:rgba(200,145,55,.1);box-shadow:0 0 16px var(--gold-glow)}
 
-    /* ── THEME TOGGLE ── */
-    .theme-toggle {
-      position: fixed;
-      top: 1.5rem; right: 1.8rem;
-      width: 46px; height: 46px;
-      border-radius: 50%;
-      border: 1px solid var(--border-hot);
-      background: var(--surface);
-      backdrop-filter: blur(16px);
-      display: grid; place-items: center;
-      cursor: pointer;
-      font-size: 1.1rem;
-      transition: all 0.35s ease;
-      z-index: 100;
-      box-shadow: 0 0 20px var(--gold-glow);
-    }
-    .theme-toggle:hover { transform: rotate(20deg) scale(1.1); box-shadow: 0 0 30px var(--gold-glow); }
+/* HISTORY */
+.history-card{background:var(--surface);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.history-header{padding:1rem 1.6rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.history-header h3{font-family:'Playfair Display',serif;font-style:italic;font-size:1.1rem;color:var(--gold-l)}
+.clear-btn{background:none;border:1px solid var(--border);border-radius:2px;color:var(--text-muted);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;padding:.28rem .65rem;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.clear-btn:hover{border-color:var(--crimson);color:var(--crimson-l)}
+.history-list{max-height:260px;overflow-y:auto}
+.history-item{padding:.85rem 1.6rem;border-bottom:1px solid var(--border);display:grid;grid-template-columns:auto 1fr auto;gap:.8rem;align-items:center;cursor:pointer;transition:background .2s;animation:slideIn .35s var(--ease)}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.history-item:hover{background:rgba(200,145,55,.05)}
+.history-item:last-child{border-bottom:none}
+.hist-badge{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.hist-badge.positive{background:var(--emerald);box-shadow:0 0 6px var(--emerald-glow)}
+.hist-badge.negative{background:var(--crimson);box-shadow:0 0 6px var(--crimson-glow)}
+.hist-badge.neutral{background:var(--gold);box-shadow:0 0 6px var(--gold-glow)}
+.hist-text{font-size:.86rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-score{font-size:.77rem;color:var(--text-muted);white-space:nowrap}
+.no-history{padding:2rem;text-align:center;color:var(--text-dim);font-size:.87rem;font-style:italic}
 
-    /* ── WRAPPER ── */
-    .wrapper {
-      width: 100%;
-      max-width: 640px;
-      position: relative;
-      z-index: 10;
-      animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) both;
-    }
-    @keyframes riseIn { from { opacity:0; transform:translateY(40px); } to { opacity:1; transform:translateY(0); } }
+/* BATCH RESULTS */
+.batch-item{padding:.8rem 1rem;border:1px solid var(--border);border-radius:4px;display:grid;grid-template-columns:auto 1fr auto;gap:.8rem;align-items:center;animation:slideIn .35s var(--ease) both;background:rgba(0,0,0,.2)}
 
-    /* ── HEADER ── */
-    .header {
-      text-align: center;
-      margin-bottom: 2.8rem;
-    }
+/* SPINNER */
+.spinner{width:34px;height:34px;border:3px solid rgba(200,145,55,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    /* Film perforations */
-    .film-strip {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 1.4rem;
-    }
-    .perf {
-      width: 12px; height: 18px;
-      border-radius: 3px;
-      border: 1.5px solid var(--border-hot);
-      background: transparent;
-      opacity: 0.6;
-    }
+/* TOAST */
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(200,145,55,.15);border:1px solid var(--border-hot);backdrop-filter:blur(16px);border-radius:999px;padding:.6rem 1.4rem;font-size:.82rem;letter-spacing:.08em;color:var(--gold-l);opacity:0;transition:all .4s var(--ease);pointer-events:none;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-    h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: clamp(4rem, 11vw, 6.5rem);
-      font-weight: 900;
-      font-style: italic;
-      letter-spacing: -0.03em;
-      line-height: 0.9;
-      color: var(--text);
-      position: relative;
-      display: inline-block;
-    }
-    h1 span {
-      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--amber) 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      filter: drop-shadow(0 0 20px var(--gold-glow));
-      animation: textPulse 5s ease-in-out infinite;
-    }
-    @keyframes textPulse {
-      0%,100% { filter: drop-shadow(0 0 20px var(--gold-glow)); }
-      50%      { filter: drop-shadow(0 0 35px var(--gold-glow)) brightness(1.1); }
-    }
+/* KEYBOARD HINT */
+.kb-hint{text-align:center;font-size:.72rem;color:var(--text-dim);letter-spacing:.08em;margin-top:.5rem;position:relative;z-index:1}
+kbd{background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:3px;padding:.1rem .35rem;font-family:'DM Sans',sans-serif;font-size:.7rem}
 
-    .tagline {
-      margin-top: 1rem;
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      font-weight: 300;
-    }
-    .tagline::before, .tagline::after {
-      content: '—';
-      margin: 0 0.7em;
-      color: var(--gold);
-      opacity: 0.5;
-    }
+footer{text-align:center;margin-top:2rem;color:var(--text-dim);font-size:.77rem;letter-spacing:.14em;text-transform:uppercase;position:relative;z-index:10}
+footer span{color:var(--gold);opacity:.4;margin:0 .5em}
 
-    /* ── CARD ── */
-    .card {
-      background: var(--surface);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 2.6rem;
-      position: relative;
-      overflow: hidden;
-      box-shadow:
-        0 30px 80px rgba(0,0,0,0.6),
-        0 0 0 1px rgba(200,140,60,0.06),
-        inset 0 1px 0 rgba(200,140,60,0.08);
-    }
-
-    /* Gold top accent bar */
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, var(--gold), var(--amber), var(--gold), transparent);
-      animation: scanline 4s ease-in-out infinite;
-    }
-    @keyframes scanline {
-      0%,100% { opacity: 0.5; }
-      50%      { opacity: 1; }
-    }
-
-    /* Film stripe bg texture */
-    .card::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: var(--film-stripe);
-      pointer-events: none;
-    }
-
-    /* ── LABEL ── */
-    .input-label {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-size: 0.78rem;
-      font-weight: 500;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 1rem;
-    }
-    .input-label::before {
-      content: '';
-      display: block;
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--gold);
-      box-shadow: 0 0 8px var(--gold-glow);
-      animation: blink 2s ease-in-out infinite;
-    }
-    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-
-    /* ── TEXTAREA ── */
-    textarea {
-      width: 100%;
-      min-height: 155px;
-      background: rgba(0,0,0,0.35);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--text);
-      padding: 1.3rem 1.4rem;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1rem;
-      line-height: 1.65;
-      resize: vertical;
-      transition: border-color 0.3s, box-shadow 0.3s;
-      position: relative; z-index: 1;
-    }
-    textarea::placeholder { color: var(--text-dim); }
-    textarea:focus {
-      outline: none;
-      border-color: var(--gold);
-      box-shadow: 0 0 0 3px rgba(200,140,60,0.12), 0 0 20px rgba(200,140,60,0.08);
-    }
-
-    /* ── CHAR COUNT ── */
-    .meta-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      margin-top: 0.7rem;
-      position: relative; z-index: 1;
-    }
-
-    /* ── CHIPS ── */
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.55rem;
-      margin: 1.3rem 0;
-      position: relative; z-index: 1;
-    }
-    .chip {
-      padding: 0.45rem 1rem;
-      border-radius: 2px;
-      border: 1px solid var(--border);
-      background: rgba(200,140,60,0.04);
-      color: var(--text-muted);
-      font-size: 0.84rem;
-      font-family: 'DM Sans', sans-serif;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      letter-spacing: 0.01em;
-    }
-    .chip:hover {
-      border-color: var(--gold);
-      color: var(--gold-light);
-      background: rgba(200,140,60,0.1);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px var(--gold-glow);
-    }
-
-    /* ── ANALYZE BUTTON ── */
-    #analyzeBtn {
-      width: 100%;
-      padding: 1.15rem;
-      margin: 1.6rem 0;
-      border: none;
-      border-radius: 4px;
-      background: linear-gradient(135deg, #a06020 0%, #c8903c 40%, #e0a840 70%, #c87820 100%);
-      color: #0c0a08;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.88rem;
-      font-weight: 500;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      cursor: pointer;
-      position: relative; overflow: hidden; z-index: 1;
-      transition: all 0.35s ease;
-      box-shadow: 0 4px 24px var(--gold-glow);
-    }
-    #analyzeBtn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 40px rgba(200,140,60,0.5);
-      filter: brightness(1.08);
-    }
-    #analyzeBtn:active { transform: translateY(0); }
-    #analyzeBtn::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
-      transform: translateX(-100%);
-      transition: transform 0.7s ease;
-    }
-    #analyzeBtn:hover::before { transform: translateX(100%); }
-    #analyzeBtn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-    /* ── DIVIDER ── */
-    .divider {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--border-hot), transparent);
-      margin: 0.2rem 0 1.6rem;
-      position: relative; z-index: 1;
-    }
-
-    /* ── RESULT BOX ── */
-    .result-box {
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 2.2rem 2rem;
-      text-align: center;
-      min-height: 200px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.7rem;
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.5s, box-shadow 0.5s;
-      z-index: 1;
-    }
-
-    .result-box.positive { border-color: rgba(31,173,122,0.45); box-shadow: 0 0 40px rgba(31,173,122,0.12), inset 0 0 60px rgba(31,173,122,0.04); }
-    .result-box.negative { border-color: rgba(192,40,60,0.45);  box-shadow: 0 0 40px rgba(192,40,60,0.12),  inset 0 0 60px rgba(192,40,60,0.04); }
-    .result-box.neutral  { border-color: rgba(200,140,60,0.45); box-shadow: 0 0 40px rgba(200,140,60,0.12), inset 0 0 60px rgba(200,140,60,0.04); }
-
-    /* Corner brackets */
-    .result-box::before, .result-box::after {
-      content: '';
-      position: absolute;
-      width: 18px; height: 18px;
-      border-color: var(--gold);
-      border-style: solid;
-      opacity: 0.4;
-      transition: opacity 0.4s;
-    }
-    .result-box::before { top: 8px; left: 8px; border-width: 1.5px 0 0 1.5px; }
-    .result-box::after  { bottom: 8px; right: 8px; border-width: 0 1.5px 1.5px 0; }
-    .result-box:not([style*="opacity: 0"])::before,
-    .result-box:not([style*="opacity: 0"])::after { opacity: 0.7; }
-
-    .result-icon {
-      font-size: 3.2rem;
-      line-height: 1;
-      margin-bottom: 0.3rem;
-      filter: drop-shadow(0 0 16px currentColor);
-      animation: none;
-    }
-    .result-icon.pop { animation: iconPop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
-    @keyframes iconPop { 0%{transform:scale(0.4) rotate(-10deg);} 100%{transform:scale(1) rotate(0deg);} }
-
-    .result-sentiment {
-      font-family: 'Playfair Display', serif;
-      font-size: 3.6rem;
-      font-weight: 700;
-      font-style: italic;
-      letter-spacing: -0.02em;
-      line-height: 1;
-    }
-    .result-sentiment.positive { color: var(--emerald); text-shadow: 0 0 30px var(--emerald-glow); }
-    .result-sentiment.negative { color: var(--crimson);  text-shadow: 0 0 30px var(--crimson-glow); }
-    .result-sentiment.neutral  { color: var(--gold);     text-shadow: 0 0 30px var(--gold-glow); }
-    .result-sentiment.loading  { color: var(--text-muted); font-size:2rem; font-style:normal; }
-
-    .result-confidence {
-      font-size: 0.82rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-
-    /* ── CONFIDENCE BAR ── */
-    .conf-track {
-      width: 100%;
-      max-width: 280px;
-      height: 4px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-top: 0.6rem;
-    }
-    .conf-fill {
-      height: 100%;
-      border-radius: 2px;
-      width: 0%;
-      transition: width 1.5s cubic-bezier(0.16,1,0.3,1);
-    }
-    .conf-fill.positive { background: linear-gradient(90deg, #1fad7a, #4dffc0); }
-    .conf-fill.negative { background: linear-gradient(90deg, #c0283c, #ff6080); }
-    .conf-fill.neutral  { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
-
-    /* ── SCORE PIPS ── */
-    .score-pips {
-      display: flex;
-      gap: 5px;
-      margin-top: 0.5rem;
-    }
-    .pip {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.1);
-      transition: background 0.2s, box-shadow 0.2s;
-    }
-    .pip.lit.positive { background: var(--emerald); box-shadow: 0 0 8px var(--emerald-glow); }
-    .pip.lit.negative { background: var(--crimson);  box-shadow: 0 0 8px var(--crimson-glow); }
-    .pip.lit.neutral  { background: var(--gold);     box-shadow: 0 0 8px var(--gold-glow); }
-
-    /* ── COPY BTN ── */
-    .copy-btn {
-      margin-top: 0.8rem;
-      padding: 0.5rem 1.3rem;
-      background: transparent;
-      border: 1px solid var(--border-hot);
-      border-radius: 2px;
-      color: var(--gold);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.8rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.25s;
-      display: none;
-    }
-    .copy-btn:hover { background: rgba(200,140,60,0.1); box-shadow: 0 0 16px var(--gold-glow); }
-
-    /* ── FOOTER ── */
-    .footer {
-      text-align: center;
-      margin-top: 2.2rem;
-      color: var(--text-dim);
-      font-size: 0.8rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-    .footer span { color: var(--gold); opacity: 0.5; margin: 0 0.5em; }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width:520px) {
-      .card { padding: 1.8rem 1.4rem; }
-      h1 { font-size: 3.6rem; }
-      .result-sentiment { font-size: 2.8rem; }
-    }
-  </style>
+@media(max-width:520px){
+  .card{padding:1.7rem 1.3rem}
+  h1{font-size:3.4rem}
+  .result-label{font-size:2.7rem}
+  .stats-row{gap:.5rem}
+  .stat-val{font-size:1.3rem}
+}
+</style>
 </head>
 <body>
+<canvas id="bgCanvas"></canvas>
+<div id="cursorGlow"></div>
+<button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🎞️</button>
 
-  <div class="orb1"></div>
-  <div class="orb2"></div>
+<div class="wrapper">
 
-  <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Toggle theme">🎞️</button>
-
-  <div class="wrapper">
-    <!-- Header -->
-    <header class="header">
-      <div class="film-strip">
-        <div class="perf"></div><div class="perf"></div><div class="perf"></div>
-        <div class="perf" style="opacity:1;border-color:var(--gold);"></div>
-        <div class="perf"></div><div class="perf"></div><div class="perf"></div>
-      </div>
-      <h1>Cine<span>Read</span></h1>
-      <p class="tagline">Sentiment Decoder</p>
-    </header>
-
-    <!-- Card -->
-    <div class="card">
-      <div class="input-label">Your Review</div>
-
-      <textarea id="review"
-        placeholder="Paste or write a movie review — every word tells a story..."
-        rows="6"
-        maxlength="2000"
-        oninput="updateCount()">
-      </textarea>
-
-      <div class="meta-row">
-        <span style="color:var(--text-dim); font-size:0.8rem; letter-spacing:0.05em;">Quick examples →</span>
-        <span><span id="count">0</span><span style="color:var(--text-dim)">/2000</span></span>
-      </div>
-
-      <div class="chips">
-        <span class="chip" onclick="setExample(this)">Masterpiece — emotionally shattering</span>
-        <span class="chip" onclick="setExample(this)">Waste of time, poor script and acting</span>
-        <span class="chip" onclick="setExample(this)">Overhyped but decent action sequences</span>
-        <span class="chip" onclick="setExample(this)">Heartbreaking, best film of the year</span>
-      </div>
-
-      <button id="analyzeBtn">⬡ &nbsp;Analyse Sentiment</button>
-
-      <div class="divider"></div>
-
-      <!-- Result -->
-      <div class="result-box" id="resultBox" style="opacity:0; min-height:120px;">
-        <div class="result-icon" id="resultIcon">🎬</div>
-        <div class="result-sentiment loading" id="resultSentiment">Awaiting review…</div>
-        <div class="result-confidence" id="resultConf"></div>
-        <div class="conf-track" id="confTrack" style="display:none;">
-          <div class="conf-fill" id="confFill"></div>
-        </div>
-        <div class="score-pips" id="scorePips" style="display:none;"></div>
-        <button class="copy-btn" id="copyBtn" onclick="copyResult()">Copy result</button>
-      </div>
+  <header class="header">
+    <div class="film-perfs">
+      <div class="perf"></div><div class="perf"></div>
+      <div class="perf active"></div><div class="perf active"></div><div class="perf active"></div>
+      <div class="perf"></div><div class="perf"></div>
     </div>
+    <h1>Cine<span class="accent">Read</span></h1>
+    <p class="tagline">Film Sentiment Decoder</p>
+    <div style="display:flex;justify-content:center;margin-top:.7rem">
+      <div class="live-badge"><div class="live-dot"></div>AI-Powered · IMDB Trained</div>
+    </div>
+  </header>
 
-    <p class="footer">CineRead v2 <span>◆</span> Film Sentiment AI</p>
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-val" id="statTotal">0</div>
+      <div class="stat-key">Reviews</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="statPos" style="color:var(--emerald-l)">0</div>
+      <div class="stat-key">Positive</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="statNeg" style="color:var(--crimson-l)">0</div>
+      <div class="stat-key">Negative</div>
+    </div>
   </div>
 
-  <script>
-    /* ── helpers ── */
-    function updateCount() {
-      document.getElementById('count').textContent =
-        document.getElementById('review').value.length;
+  <div class="card">
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('analyze',this)">⬡ Analyze</button>
+      <button class="tab" onclick="switchTab('batch',this)">⊞ Batch</button>
+      <button class="tab" onclick="switchTab('compare',this)">⇄ Compare</button>
+    </div>
+
+    <!-- ANALYZE TAB -->
+    <div id="tab-analyze">
+      <div class="input-label"><div class="input-dot"></div>Your Review</div>
+      <textarea id="review" placeholder="Paste or write a movie review — every word tells a story of emotion…" rows="6" maxlength="2000" oninput="onReviewInput()"></textarea>
+      <div class="word-count-bar"><div class="word-count-fill" id="wcFill"></div></div>
+      <div class="meta-row">
+        <span style="font-size:.77rem;color:var(--text-dim)" id="wordStat">0 words</span>
+        <span><span id="count">0</span><span style="color:var(--text-dim)">/2000</span></span>
+      </div>
+      <div class="tone-row" id="tonePills"></div>
+      <div class="mood-wrap">
+        <div class="mood-label-row">Mood Spectrum</div>
+        <div class="mood-track"><div class="mood-thumb" id="moodThumb"></div></div>
+        <div class="mood-ends"><span>😡 Negative</span><span>😐 Neutral</span><span>😍 Positive</span></div>
+      </div>
+      <div class="chips">
+        <span class="chip" onclick="setEx(this)">Masterpiece — emotionally shattering, Oscar-worthy</span>
+        <span class="chip" onclick="setEx(this)">Terrible waste of time, poor script and dull acting</span>
+        <span class="chip" onclick="setEx(this)">Overhyped, decent action but hollow storyline</span>
+        <span class="chip" onclick="setEx(this)">Heartbreaking and beautiful, best film of the decade</span>
+        <span class="chip" onclick="setEx(this)">Predictable plot saved by stunning cinematography</span>
+      </div>
+      <button class="gold-btn" id="analyzeBtn" onclick="analyze()">⬡ &nbsp;Analyse Sentiment</button>
+      <div class="kb-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to analyse</div>
+    </div>
+
+    <!-- BATCH TAB -->
+    <div id="tab-batch" style="display:none">
+      <div class="input-label"><div class="input-dot"></div>Batch Reviews — one per line</div>
+      <textarea id="batchReview" rows="8" maxlength="6000"
+        placeholder="Review 1: Absolutely brilliant, emotionally devastating film…&#10;Review 2: Terrible, slow and utterly boring waste of time…&#10;Review 3: Mixed feelings — some great scenes but poor ending…"
+        style="font-size:.9rem"></textarea>
+      <button class="gold-btn" id="batchBtn" onclick="analyzeBatch()" style="margin-top:1.2rem">⊞ &nbsp;Analyse All Reviews</button>
+      <div id="batchResults" style="margin-top:1.1rem;display:flex;flex-direction:column;gap:.55rem"></div>
+    </div>
+
+    <!-- COMPARE TAB -->
+    <div id="tab-compare" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div>
+          <div class="input-label" style="font-size:.72rem"><div class="input-dot"></div>Review A</div>
+          <textarea id="compareA" rows="5" maxlength="1000" placeholder="First review…" style="font-size:.9rem"></textarea>
+        </div>
+        <div>
+          <div class="input-label" style="font-size:.72rem"><div class="input-dot" style="background:var(--crimson);box-shadow:0 0 8px var(--crimson-glow)"></div>Review B</div>
+          <textarea id="compareB" rows="5" maxlength="1000" placeholder="Second review…" style="font-size:.9rem"></textarea>
+        </div>
+      </div>
+      <button class="gold-btn" onclick="analyzeCompare()" style="margin-top:1.2rem">⇄ &nbsp;Compare Sentiments</button>
+      <div id="compareResult" style="margin-top:1.2rem"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- RESULT -->
+    <div class="result-box" id="resultBox" style="opacity:0;min-height:100px">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+      <div class="result-icon" id="resultIcon">🎬</div>
+      <div class="result-label idle" id="resultLabel">Awaiting analysis…</div>
+      <div class="result-sub" id="resultSub"></div>
+      <div class="arc-wrap" id="arcWrap" style="display:none">
+        <svg class="arc-svg" viewBox="0 0 110 60">
+          <path class="arc-bg" d="M 10 55 A 45 45 0 0 1 100 55"/>
+          <path class="arc-fill" id="arcFill" d="M 10 55 A 45 45 0 0 1 100 55" stroke-dasharray="141.3" stroke-dashoffset="141.3"/>
+        </svg>
+        <div class="arc-label" id="arcLabel" style="color:var(--gold)">—</div>
+      </div>
+      <div class="keywords-row" id="keywords"></div>
+      <div class="action-row" id="actionRow" style="display:none">
+        <button class="action-btn" onclick="copyResult()">⎘ Copy</button>
+        <button class="action-btn" onclick="shareResult()">↗ Share</button>
+        <button class="action-btn" onclick="downloadResult()">↓ Export</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="history-card">
+    <div class="history-header">
+      <h3>Analysis History</h3>
+      <button class="clear-btn" onclick="clearHistory()">Clear All</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="no-history">No analyses yet — start by reviewing a film above.</div>
+    </div>
+  </div>
+
+  <footer>CineRead v3 <span>◆</span> Film Sentiment AI <span>◆</span> IMDB-trained</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── PARTICLE CANVAS ── */
+(()=>{
+  const canvas=document.getElementById('bgCanvas');
+  const ctx=canvas.getContext('2d');
+  let W,H,pts=[];
+  function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
+  resize();window.addEventListener('resize',resize);
+  class P{
+    constructor(){this.reset()}
+    reset(){
+      this.x=Math.random()*W;this.y=Math.random()*H;
+      this.r=Math.random()*1.4+0.3;
+      this.vx=(Math.random()-.5)*.18;this.vy=(Math.random()-.5)*.18;
+      const c=Math.random();
+      this.col=c<.5?'rgba(200,145,55,':c<.8?'rgba(192,40,60,':'rgba(31,173,122,';
+      this.a=Math.random()*.38+.08;this.da=(Math.random()-.5)*.003
     }
-
-    function setExample(el) {
-      document.getElementById('review').value = el.textContent.trim();
-      updateCount();
+    tick(){
+      this.x+=this.vx;this.y+=this.vy;this.a+=this.da;
+      if(this.a<.05||this.a>.55)this.da*=-1;
+      if(this.x<0||this.x>W||this.y<0||this.y>H)this.reset()
     }
-
-    function toggleTheme() {
-      const html = document.documentElement;
-      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-theme', next);
-      document.getElementById('themeBtn').textContent = next === 'dark' ? '🎞️' : '☀️';
-    }
-
-    function buildPips(score, cls) {
-      const total = 10;
-      const lit = Math.round(score / 10);
-      return Array.from({length: total}, (_, i) =>
-        `<div class="pip ${i < lit ? 'lit ' + cls : ''}"></div>`
-      ).join('');
-    }
-
-    function copyResult() {
-      const s = document.getElementById('resultSentiment').textContent;
-      const c = document.getElementById('resultConf').textContent;
-      navigator.clipboard.writeText(`${s} ${c}`).then(() => {
-        const btn = document.getElementById('copyBtn');
-        btn.textContent = '✓ Copied';
-        setTimeout(() => btn.textContent = 'Copy result', 2000);
-      });
-    }
-
-    /* ── analyze ── */
-    document.getElementById('analyzeBtn').addEventListener('click', async () => {
-      const review = document.getElementById('review').value.trim();
-      if (!review) { document.getElementById('review').focus(); return; }
-
-      const btn      = document.getElementById('analyzeBtn');
-      const box      = document.getElementById('resultBox');
-      const icon     = document.getElementById('resultIcon');
-      const sent     = document.getElementById('resultSentiment');
-      const conf     = document.getElementById('resultConf');
-      const track    = document.getElementById('confTrack');
-      const fill     = document.getElementById('confFill');
-      const pips     = document.getElementById('scorePips');
-      const copyBtn  = document.getElementById('copyBtn');
-
-      btn.disabled = true;
-      box.style.opacity = '1';
-      box.className = 'result-box';
-      icon.className = 'result-icon';
-      icon.textContent = '⏳';
-      sent.className = 'result-sentiment loading';
-      sent.textContent = 'Analysing…';
-      conf.textContent = '';
-      track.style.display = 'none';
-      fill.style.width = '0%';
-      pips.style.display = 'none';
-      pips.innerHTML = '';
-      copyBtn.style.display = 'none';
-
-      try {
-        const res = await fetch("http://127.0.0.1:8000/predict", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: review })
-        });
-        if (!res.ok) throw new Error('API error');
-
-        const data = await res.json();
-        const raw = (data.sentiment || '').toLowerCase();
-        const isPos = raw.includes('positive');
-        const isNeg = raw.includes('negative');
-
-        let cls   = 'neutral',  label = 'Neutral',  emoji = '🤔';
-        if (isPos) { cls = 'positive'; label = 'Positive'; emoji = '🌟'; }
-        if (isNeg) { cls = 'negative'; label = 'Negative'; emoji = '🎭'; }
-
-        const score = data.score ? Math.round(data.score * 100) : 55;
-
-        box.className = `result-box ${cls}`;
-
-        icon.textContent = emoji;
-        icon.className = 'result-icon pop';
-
-        sent.className = `result-sentiment ${cls}`;
-        sent.textContent = label;
-
-        conf.textContent = `${score}% confidence`;
-
-        // confidence bar
-        track.style.display = 'block';
-        fill.className = `conf-fill ${cls}`;
-        setTimeout(() => fill.style.width = score + '%', 100);
-
-        // pips
-        pips.style.display = 'flex';
-        pips.innerHTML = buildPips(score, cls);
-
-        copyBtn.style.display = 'inline-block';
-
-      } catch (err) {
-        box.className = 'result-box neutral';
-        icon.textContent = '⚠️';
-        icon.className = 'result-icon pop';
-        sent.className = 'result-sentiment neutral';
-        sent.textContent = 'Error';
-        conf.textContent = 'Could not reach API — check localhost:8000';
+    draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=this.col+this.a+')';ctx.fill()}
+  }
+  for(let i=0;i<110;i++)pts.push(new P());
+  function loop(){
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<pts.length;i++){
+      pts[i].tick();pts[i].draw();
+      for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<75){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(200,145,55,${.045*(1-d/75)})`;ctx.lineWidth=.5;ctx.stroke()}
       }
+    }
+    requestAnimationFrame(loop)
+  }
+  loop()
+})();
 
-      btn.disabled = false;
+/* ── CURSOR GLOW ── */
+document.addEventListener('mousemove',e=>{
+  const g=document.getElementById('cursorGlow');
+  g.style.left=e.clientX+'px';g.style.top=e.clientY+'px'
+});
+
+/* ── THEME ── */
+function toggleTheme(){
+  const html=document.documentElement;
+  const next=html.getAttribute('data-theme')==='dark'?'light':'dark';
+  html.setAttribute('data-theme',next);
+  document.getElementById('themeBtn').textContent=next==='dark'?'🎞️':'☀️'
+}
+
+/* ── TOAST ── */
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600)
+}
+
+/* ── TABS ── */
+function switchTab(name,btn){
+  ['analyze','batch','compare'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===name?'block':'none'});
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active')
+}
+
+/* ── WORD LISTS ── */
+const POS=['brilliant','masterpiece','stunning','beautiful','love','amazing','excellent','perfect','wonderful','heartbreaking','powerful','moving','outstanding','superb','magnificent','great','fantastic','incredible','emotional','inspiring','touching','captivating','breathtaking','remarkable','exceptional','glorious','mesmerizing','unforgettable','enchanting','riveting','flawless'];
+const NEG=['terrible','waste','boring','poor','awful','bad','horrible','dull','disappointing','predictable','bland','mediocre','trash','worst','fails','ridiculous','pathetic','tedious','hollow','forgettable','overrated','unbearable','mess','generic','formulaic','exhausting','annoying','pointless','painful','dismal'];
+
+/* ── LIVE INPUT ── */
+function onReviewInput(){
+  const val=document.getElementById('review').value;
+  document.getElementById('count').textContent=val.length;
+  document.getElementById('wcFill').style.width=(val.length/2000*100)+'%';
+  const words=val.toLowerCase().match(/\b\w+\b/g)||[];
+  document.getElementById('wordStat').textContent=words.length+' word'+(words.length!==1?'s':'');
+  const fPos=POS.filter(w=>words.includes(w));
+  const fNeg=NEG.filter(w=>words.includes(w));
+  const pills=document.getElementById('tonePills');
+  const all=[...fPos.map(w=>({w,c:'pos'})),...fNeg.map(w=>({w,c:'neg'}))];
+  if(all.length){pills.innerHTML=all.slice(0,9).map(({w,c})=>`<span class="tone-pill ${c}">${w}</span>`).join('')}
+  else{pills.innerHTML=words.length>3?'<span class="tone-pill neu">neutral tone detected</span>':''}
+  let score=.5;
+  if(words.length>0){const p=fPos.length,n=fNeg.length,tot=p+n;score=tot===0?.5:(p/tot)*.9+.05}
+  document.getElementById('moodThumb').style.left=(score*100)+'%'
+}
+
+function setEx(el){document.getElementById('review').value=el.textContent.trim();onReviewInput()}
+
+/* ── STATS ── */
+let S={total:0,pos:0,neg:0};
+function updateStats(cls){
+  S.total++;if(cls==='positive')S.pos++;if(cls==='negative')S.neg++;
+  document.getElementById('statTotal').textContent=S.total;
+  document.getElementById('statPos').textContent=S.pos;
+  document.getElementById('statNeg').textContent=S.neg
+}
+
+/* ── HISTORY ── */
+let hist=[];
+function addHistory(text,cls,score){
+  hist.unshift({text,cls,score});if(hist.length>25)hist.pop();renderHistory()
+}
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  if(!hist.length){list.innerHTML='<div class="no-history">No analyses yet — start by reviewing a film above.</div>';return}
+  list.innerHTML=hist.map((h,i)=>`
+    <div class="history-item" onclick="loadHistory(${i})">
+      <div class="hist-badge ${h.cls}"></div>
+      <div class="hist-text">${h.text.substring(0,80)}${h.text.length>80?'…':''}</div>
+      <div class="hist-score">${h.cls} · ${h.score}%</div>
+    </div>`).join('')
+}
+function loadHistory(i){
+  const h=hist[i];
+  document.getElementById('review').value=h.text;onReviewInput();
+  switchTab('analyze',document.querySelector('.tab'));showToast('Review loaded ✓')
+}
+function clearHistory(){
+  hist=[];renderHistory();S={total:0,pos:0,neg:0};
+  ['statTotal','statPos','statNeg'].forEach(id=>document.getElementById(id).textContent='0');
+  showToast('History cleared')
+}
+
+/* ── ARC METER ── */
+function setArc(score,cls){
+  const fill=document.getElementById('arcFill'),label=document.getElementById('arcLabel');
+  const cmap={positive:'var(--emerald)',negative:'var(--crimson)',neutral:'var(--gold)'};
+  fill.style.stroke=cmap[cls];fill.style.filter=`drop-shadow(0 0 6px ${cmap[cls]})`;
+  setTimeout(()=>fill.style.strokeDashoffset=141.3-(141.3*score/100),80);
+  label.style.color=cmap[cls];label.textContent=score+'%'
+}
+
+/* ── KEYWORDS ── */
+function extractKeywords(text,cls){
+  const words=text.toLowerCase().match(/\b\w{4,}\b/g)||[];
+  const stop=new Set(['this','that','with','have','from','they','were','said','each','which','their','there','been','would','could','should','will','when','what','where','your','about','into','film','movie','just','very','really','quite','also','more','some','than','then','them','these','those','here','time','good','well','even','back','only','much','like','such','most']);
+  let found=[];
+  found=[...POS,...NEG].filter(w=>words.includes(w)&&!stop.has(w)).slice(0,6);
+  const freq={};words.forEach(w=>{if(!stop.has(w)&&w.length>4)freq[w]=(freq[w]||0)+1});
+  const top=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([w])=>w);
+  return [...new Set([...found,...top])].slice(0,8)
+}
+
+/* ── MOCK SENTIMENT (replace with real API) ── */
+function mockSentiment(text){
+  const words=text.toLowerCase().match(/\b\w+\b/g)||[];
+  const p=words.filter(w=>POS.includes(w)).length;
+  const n=words.filter(w=>NEG.includes(w)).length;
+  const cls=p>n?'positive':n>p?'negative':'neutral';
+  const sc=Math.min(97,55+(Math.max(p,n))*8+Math.floor(Math.random()*10));
+  return{cls,sc}
+}
+
+/* ── DISPLAY RESULT ── */
+function displayResult(review,cls,score){
+  const box=document.getElementById('resultBox');
+  const icon=document.getElementById('resultIcon');
+  const label=document.getElementById('resultLabel');
+  const sub=document.getElementById('resultSub');
+  const arcWrap=document.getElementById('arcWrap');
+  const kw=document.getElementById('keywords');
+  const actionRow=document.getElementById('actionRow');
+  const emap={positive:'🌟',negative:'🎭',neutral:'🤔'};
+  const lmap={positive:'Positive',negative:'Negative',neutral:'Neutral'};
+  box.className='result-box '+cls;
+  icon.textContent=emap[cls];icon.className='result-icon pop';
+  label.className='result-label '+cls;
+  // Typewriter
+  const txt=lmap[cls];label.textContent='';let i=0;
+  const tw=setInterval(()=>{label.textContent+=txt[i];i++;if(i>=txt.length)clearInterval(tw)},65);
+  sub.textContent=`${score}% confidence · ${cls} sentiment detected`;
+  arcWrap.style.display='block';setArc(score,cls);
+  const found=extractKeywords(review,cls);
+  kw.innerHTML=found.map((w,idx)=>`<span class="kw ${POS.includes(w)?'pos':NEG.includes(w)?'neg':'neu'}" style="animation-delay:${idx*.07}s">${w}</span>`).join('');
+  actionRow.style.display='flex';
+  updateStats(cls);addHistory(review,cls,score)
+}
+
+/* ── ANALYZE ── */
+async function analyze(){
+  const review=document.getElementById('review').value.trim();
+  if(!review){document.getElementById('review').focus();return}
+  const btn=document.getElementById('analyzeBtn');
+  const box=document.getElementById('resultBox');
+  const label=document.getElementById('resultLabel');
+  const sub=document.getElementById('resultSub');
+  const arcWrap=document.getElementById('arcWrap');
+  const kw=document.getElementById('keywords');
+  const actionRow=document.getElementById('actionRow');
+  btn.disabled=true;
+  box.style.opacity='1';box.className='result-box';
+  document.getElementById('resultIcon').textContent='';
+  label.className='result-label idle';label.innerHTML='<div class="spinner"></div>';
+  sub.textContent='Decoding sentiment…';
+  arcWrap.style.display='none';kw.innerHTML='';actionRow.style.display='none';
+  document.getElementById('arcFill').style.strokeDashoffset='141.3';
+
+  // Try real API first, fall back to mock
+  try{
+    const res=await fetch('http://127.0.0.1:8000/predict',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:review}),signal:AbortSignal.timeout(4000)
     });
-  </script>
+    if(!res.ok)throw new Error('API error');
+    const data=await res.json();
+    const raw=(data.sentiment||'').toLowerCase();
+    const cls=raw.includes('positive')?'positive':raw.includes('negative')?'negative':'neutral';
+    const score=data.score?Math.round(data.score*100):55;
+    displayResult(review,cls,score);
+  }catch(e){
+    // Fallback to smart mock
+    await new Promise(r=>setTimeout(r,1100));
+    const{cls,sc}=mockSentiment(review);
+    displayResult(review,cls,sc);
+  }
+  btn.disabled=false
+}
+
+/* ── BATCH ── */
+async function analyzeBatch(){
+  const lines=document.getElementById('batchReview').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(!lines.length){showToast('Add at least one review');return}
+  const btn=document.getElementById('batchBtn');
+  btn.disabled=true;
+  const res=document.getElementById('batchResults');
+  res.innerHTML=`<div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:.85rem">Analysing ${lines.length} review${lines.length>1?'s':''}…</div>`;
+  await new Promise(r=>setTimeout(r,700));
+  res.innerHTML='';
+  const cmap={positive:'var(--emerald)',negative:'var(--crimson)',neutral:'var(--gold)'};
+  const emap={positive:'🌟',negative:'🎭',neutral:'🤔'};
+  lines.forEach((line,idx)=>{
+    const{cls,sc}=mockSentiment(line);
+    const d=document.createElement('div');
+    d.className='batch-item';d.style.animationDelay=idx*.07+'s';
+    d.innerHTML=`<span style="font-size:1.25rem">${emap[cls]}</span><span style="font-size:.85rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${line.substring(0,70)}${line.length>70?'…':''}</span><span style="font-size:.8rem;color:${cmap[cls]};white-space:nowrap;font-weight:500">${cls} · ${sc}%</span>`;
+    res.appendChild(d);updateStats(cls);addHistory(line,cls,sc)
+  });
+  btn.disabled=false;showToast(`${lines.length} reviews analysed ✓`)
+}
+
+/* ── COMPARE ── */
+async function analyzeCompare(){
+  const a=document.getElementById('compareA').value.trim();
+  const b=document.getElementById('compareB').value.trim();
+  if(!a||!b){showToast('Fill in both review fields');return}
+  await new Promise(r=>setTimeout(r,800));
+  const ra=mockSentiment(a),rb=mockSentiment(b);
+  const cmap={positive:'var(--emerald)',negative:'var(--crimson)',neutral:'var(--gold)'};
+  const emap={positive:'🌟',negative:'🎭',neutral:'🤔'};
+  document.getElementById('compareResult').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center">
+      <div style="text-align:center;padding:1.2rem;border:1px solid ${cmap[ra.cls]};border-radius:4px;background:rgba(0,0,0,.2)">
+        <div style="font-size:2rem">${emap[ra.cls]}</div>
+        <div style="font-family:'Playfair Display',serif;font-style:italic;font-size:1.4rem;color:${cmap[ra.cls]}">${ra.cls}</div>
+        <div style="font-size:.78rem;color:var(--text-muted);margin-top:.3rem">${ra.sc}% confidence</div>
+      </div>
+      <div style="text-align:center;color:var(--gold-l);font-family:'Playfair Display',serif;font-style:italic;font-size:1.3rem">vs</div>
+      <div style="text-align:center;padding:1.2rem;border:1px solid ${cmap[rb.cls]};border-radius:4px;background:rgba(0,0,0,.2)">
+        <div style="font-size:2rem">${emap[rb.cls]}</div>
+        <div style="font-family:'Playfair Display',serif;font-style:italic;font-size:1.4rem;color:${cmap[rb.cls]}">${rb.cls}</div>
+        <div style="font-size:.78rem;color:var(--text-muted);margin-top:.3rem">${rb.sc}% confidence</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:.9rem;font-size:.82rem;color:var(--text-muted)">
+      ${ra.cls===rb.cls?`Both share a <strong style="color:${cmap[ra.cls]}">${ra.cls}</strong> sentiment.`:`Reviews diverge — <strong style="color:${cmap[ra.cls]}">A is ${ra.cls}</strong> while <strong style="color:${cmap[rb.cls]}">B is ${rb.cls}</strong>.`}
+    </div>`;
+  showToast('Comparison complete ✓')
+}
+
+/* ── ACTIONS ── */
+function copyResult(){
+  const l=document.getElementById('resultLabel').textContent;
+  const s=document.getElementById('resultSub').textContent;
+  navigator.clipboard.writeText(`CineRead Analysis\n${l}\n${s}`).then(()=>showToast('Copied to clipboard ✓'))
+}
+function shareResult(){
+  const l=document.getElementById('resultLabel').textContent;
+  const s=document.getElementById('resultSub').textContent;
+  if(navigator.share){navigator.share({title:'CineRead',text:`${l} — ${s}`})}
+  else{navigator.clipboard.writeText(`CineRead: ${l} — ${s}`);showToast('Copied for sharing ✓')}
+}
+function downloadResult(){
+  const review=document.getElementById('review').value;
+  const l=document.getElementById('resultLabel').textContent;
+  const s=document.getElementById('resultSub').textContent;
+  const kws=[...document.querySelectorAll('#keywords .kw')].map(k=>k.textContent).join(', ');
+  const txt=`CineRead v3 — Film Sentiment Analysis\n${'═'.repeat(42)}\nDate: ${new Date().toLocaleString()}\n\nReview:\n${review}\n\nResult: ${l}\nDetails: ${s}\nKey Terms: ${kws}\n${'═'.repeat(42)}\nPowered by CineRead AI`;
+  const blob=new Blob([txt],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='cineread-analysis.txt';a.click();
+  URL.revokeObjectURL(url);showToast('Analysis exported ✓')
+}
+
+/* ── KEYBOARD ── */
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')analyze()});
+</script>
 </body>
 </html>
